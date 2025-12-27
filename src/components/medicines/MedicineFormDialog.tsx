@@ -17,14 +17,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Medicine } from '@/types/medicine';
+import { DbMedicine, MedicineFormData } from '@/hooks/useMedicines';
 import { categories } from '@/data/mockData';
 
 interface MedicineFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  medicine?: Medicine | null;
-  onSubmit: (data: Partial<Medicine>) => void;
+  medicine?: DbMedicine | null;
+  onSubmit: (data: MedicineFormData) => void;
+  isSubmitting?: boolean;
 }
 
 export function MedicineFormDialog({
@@ -32,17 +33,18 @@ export function MedicineFormDialog({
   onOpenChange,
   medicine,
   onSubmit,
+  isSubmitting = false,
 }: MedicineFormDialogProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<MedicineFormData>({
     name: '',
-    genericName: '',
+    generic_name: '',
     category: '',
     manufacturer: '',
-    batchNumber: '',
+    batch_number: '',
     quantity: 0,
-    minStockLevel: 0,
-    unitPrice: 0,
-    expiryDate: '',
+    min_stock_level: 10,
+    unit_price: 0,
+    expiry_date: '',
     location: '',
     barcode: '',
   });
@@ -51,28 +53,28 @@ export function MedicineFormDialog({
     if (medicine) {
       setFormData({
         name: medicine.name,
-        genericName: medicine.genericName,
+        generic_name: medicine.generic_name || '',
         category: medicine.category,
-        manufacturer: medicine.manufacturer,
-        batchNumber: medicine.batchNumber,
+        manufacturer: medicine.manufacturer || '',
+        batch_number: medicine.batch_number,
         quantity: medicine.quantity,
-        minStockLevel: medicine.minStockLevel,
-        unitPrice: medicine.unitPrice,
-        expiryDate: medicine.expiryDate,
-        location: medicine.location,
+        min_stock_level: medicine.min_stock_level,
+        unit_price: Number(medicine.unit_price),
+        expiry_date: medicine.expiry_date,
+        location: medicine.location || '',
         barcode: medicine.barcode || '',
       });
     } else {
       setFormData({
         name: '',
-        genericName: '',
+        generic_name: '',
         category: '',
         manufacturer: '',
-        batchNumber: '',
+        batch_number: '',
         quantity: 0,
-        minStockLevel: 0,
-        unitPrice: 0,
-        expiryDate: '',
+        min_stock_level: 10,
+        unit_price: 0,
+        expiry_date: '',
         location: '',
         barcode: '',
       });
@@ -82,7 +84,6 @@ export function MedicineFormDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
-    onOpenChange(false);
   };
 
   const isEditing = !!medicine;
@@ -114,13 +115,12 @@ export function MedicineFormDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="genericName">Generic Name *</Label>
+                <Label htmlFor="generic_name">Generic Name</Label>
                 <Input
-                  id="genericName"
-                  value={formData.genericName}
-                  onChange={(e) => setFormData({ ...formData, genericName: e.target.value })}
+                  id="generic_name"
+                  value={formData.generic_name}
+                  onChange={(e) => setFormData({ ...formData, generic_name: e.target.value })}
                   placeholder="e.g., Acetaminophen"
-                  required
                 />
               </div>
             </div>
@@ -143,24 +143,23 @@ export function MedicineFormDialog({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="manufacturer">Manufacturer *</Label>
+                <Label htmlFor="manufacturer">Manufacturer</Label>
                 <Input
                   id="manufacturer"
                   value={formData.manufacturer}
                   onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
                   placeholder="e.g., PharmaCorp Ltd"
-                  required
                 />
               </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="batchNumber">Batch Number *</Label>
+                <Label htmlFor="batch_number">Batch Number *</Label>
                 <Input
-                  id="batchNumber"
-                  value={formData.batchNumber}
-                  onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
+                  id="batch_number"
+                  value={formData.batch_number}
+                  onChange={(e) => setFormData({ ...formData, batch_number: e.target.value })}
                   placeholder="e.g., PC2024-001"
                   required
                 />
@@ -189,25 +188,25 @@ export function MedicineFormDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="minStockLevel">Min Stock Level *</Label>
+                <Label htmlFor="min_stock_level">Min Stock Level *</Label>
                 <Input
-                  id="minStockLevel"
+                  id="min_stock_level"
                   type="number"
                   min="0"
-                  value={formData.minStockLevel}
-                  onChange={(e) => setFormData({ ...formData, minStockLevel: parseInt(e.target.value) || 0 })}
+                  value={formData.min_stock_level}
+                  onChange={(e) => setFormData({ ...formData, min_stock_level: parseInt(e.target.value) || 0 })}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="unitPrice">Unit Price ($) *</Label>
+                <Label htmlFor="unit_price">Unit Price ($) *</Label>
                 <Input
-                  id="unitPrice"
+                  id="unit_price"
                   type="number"
                   min="0"
                   step="0.01"
-                  value={formData.unitPrice}
-                  onChange={(e) => setFormData({ ...formData, unitPrice: parseFloat(e.target.value) || 0 })}
+                  value={formData.unit_price}
+                  onChange={(e) => setFormData({ ...formData, unit_price: parseFloat(e.target.value) || 0 })}
                   required
                 />
               </div>
@@ -215,33 +214,32 @@ export function MedicineFormDialog({
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="expiryDate">Expiry Date *</Label>
+                <Label htmlFor="expiry_date">Expiry Date *</Label>
                 <Input
-                  id="expiryDate"
+                  id="expiry_date"
                   type="date"
-                  value={formData.expiryDate}
-                  onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                  value={formData.expiry_date}
+                  onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="location">Storage Location *</Label>
+                <Label htmlFor="location">Storage Location</Label>
                 <Input
                   id="location"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   placeholder="e.g., Shelf A-1"
-                  required
                 />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit">
-              {isEditing ? 'Update Medicine' : 'Add Medicine'}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : isEditing ? 'Update Medicine' : 'Add Medicine'}
             </Button>
           </DialogFooter>
         </form>

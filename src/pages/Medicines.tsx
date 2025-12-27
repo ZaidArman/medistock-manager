@@ -1,80 +1,76 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { MedicineTable } from '@/components/medicines/MedicineTable';
+import { MedicineTable } from '@/components/medicines/MedicineTableEnhanced';
 import { MedicineFormDialog } from '@/components/medicines/MedicineFormDialog';
-import { mockMedicines } from '@/data/mockData';
-import { Medicine } from '@/types/medicine';
+import { useMedicines, DbMedicine, MedicineFormData } from '@/hooks/useMedicines';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function Medicines() {
   const { toast } = useToast();
-  const [medicines, setMedicines] = useState<Medicine[]>(mockMedicines);
+  const { addMedicine, updateMedicine, deleteMedicine, refetch } = useMedicines();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
+  const [selectedMedicine, setSelectedMedicine] = useState<DbMedicine | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [medicineToDelete, setMedicineToDelete] = useState<DbMedicine | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddNew = () => {
     setSelectedMedicine(null);
     setDialogOpen(true);
   };
 
-  const handleEdit = (medicine: Medicine) => {
+  const handleEdit = (medicine: DbMedicine) => {
     setSelectedMedicine(medicine);
     setDialogOpen(true);
   };
 
-  const handleDelete = (medicine: Medicine) => {
-    setMedicines(prev => prev.filter(m => m.id !== medicine.id));
-    toast({
-      title: 'Medicine Deleted',
-      description: `${medicine.name} has been removed from inventory.`,
-    });
+  const handleDeleteClick = (medicine: DbMedicine) => {
+    setMedicineToDelete(medicine);
+    setDeleteDialogOpen(true);
   };
 
-  const handleView = (medicine: Medicine) => {
+  const handleDeleteConfirm = async () => {
+    if (!medicineToDelete) return;
+    
+    setIsSubmitting(true);
+    await deleteMedicine(medicineToDelete.id, medicineToDelete.name);
+    setDeleteDialogOpen(false);
+    setMedicineToDelete(null);
+    setIsSubmitting(false);
+  };
+
+  const handleView = (medicine: DbMedicine) => {
     toast({
       title: medicine.name,
-      description: `Batch: ${medicine.batchNumber} | Location: ${medicine.location}`,
+      description: `Batch: ${medicine.batch_number} | Location: ${medicine.location || 'N/A'}`,
     });
   };
 
-  const handleSubmit = (data: Partial<Medicine>) => {
+  const handleSubmit = async (data: MedicineFormData) => {
+    setIsSubmitting(true);
+    
+    let success: boolean;
     if (selectedMedicine) {
-      // Edit existing
-      setMedicines(prev => 
-        prev.map(m => m.id === selectedMedicine.id 
-          ? { ...m, ...data, updatedAt: new Date().toISOString() } 
-          : m
-        )
-      );
-      toast({
-        title: 'Medicine Updated',
-        description: `${data.name} has been updated successfully.`,
-      });
+      success = await updateMedicine(selectedMedicine.id, data);
     } else {
-      // Add new
-      const newMedicine: Medicine = {
-        id: String(Date.now()),
-        name: data.name || '',
-        genericName: data.genericName || '',
-        category: data.category || '',
-        manufacturer: data.manufacturer || '',
-        batchNumber: data.batchNumber || '',
-        quantity: data.quantity || 0,
-        minStockLevel: data.minStockLevel || 0,
-        unitPrice: data.unitPrice || 0,
-        expiryDate: data.expiryDate || '',
-        location: data.location || '',
-        barcode: data.barcode,
-        status: 'in-stock',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setMedicines(prev => [newMedicine, ...prev]);
-      toast({
-        title: 'Medicine Added',
-        description: `${data.name} has been added to inventory.`,
-      });
+      success = await addMedicine(data);
     }
+    
+    if (success) {
+      setDialogOpen(false);
+      await refetch();
+    }
+    setIsSubmitting(false);
   };
 
   return (
@@ -83,10 +79,9 @@ export default function Medicines() {
       subtitle="Manage your medicine inventory"
     >
       <MedicineTable 
-        medicines={medicines}
         onAddNew={handleAddNew}
         onEdit={handleEdit}
-        onDelete={handleDelete}
+        onDelete={handleDeleteClick}
         onView={handleView}
       />
       
@@ -95,7 +90,29 @@ export default function Medicines() {
         onOpenChange={setDialogOpen}
         medicine={selectedMedicine}
         onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Medicine</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{medicineToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              disabled={isSubmitting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isSubmitting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
