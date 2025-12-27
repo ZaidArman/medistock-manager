@@ -1,6 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StockOperationForm } from '@/components/stock/StockOperationForm';
-import { mockMedicines } from '@/data/mockData';
 
 export default function StockIn() {
   return (
@@ -8,7 +7,7 @@ export default function StockIn() {
       title="Stock In" 
       subtitle="Add new stock to inventory"
     >
-      <StockOperationForm type="stock-in" medicines={mockMedicines} />
+      <StockOperationForm type="stock-in" />
     </DashboardLayout>
   );
 }
