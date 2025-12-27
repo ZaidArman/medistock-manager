@@ -14,6 +14,7 @@ import Reports from "./pages/Reports";
 import Suppliers from "./pages/Suppliers";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
+import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,11 @@ const App = () => (
             <Route path="/reports" element={
               <ProtectedRoute>
                 <Reports />
+              </ProtectedRoute>
+            } />
+            <Route path="/analytics" element={
+              <ProtectedRoute requiredRoles={['admin', 'store_manager']} requireAnyRole>
+                <Analytics />
               </ProtectedRoute>
             } />
             <Route path="/suppliers" element={
